@@ -1,50 +1,40 @@
-import { collection, doc, query, where, getDocs, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import {
+  collection,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import {
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+import {
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-functions.js";
 
 export class BaseDeDatosJAC {
-  constructor(dbInstancia) {
-    this.db = dbInstancia; 
+  constructor(dbInstancia, authInstancia, functionsInstancia) {
+    this.db = dbInstancia;
+    this.auth = authInstancia;
+    this.functions = functionsInstancia;
   }
 
-  async obtenerVecinoPorCedula(cedula) {
-    try {
-      const usuariosRef = collection(this.db, "usuarios");
-      const consulta = query(usuariosRef, where("cedula", "==", cedula));
-      const resultados = await getDocs(consulta);
-
-      if (resultados.empty) return null; 
-
-      let datosVecino = null;
-      resultados.forEach((documento) => {
-        datosVecino = { idDoc: documento.id, ...documento.data() };
-      });
-      return datosVecino;
-    } catch (error) {
-      console.error("Error al consultar Firestore:", error);
-      throw error; 
-    }
+  async obtenerPerfil() {
+    const obtenerPerfil = httpsCallable(this.functions, "obtenerPerfilVecino");
+    const respuesta = await obtenerPerfil();
+    return respuesta.data;
   }
 
-  async obtenerPropuestasActivas() {
-      try {
-          const propuestasRef = collection(this.db, "propuestas");
-          const resultados = await getDocs(propuestasRef);
-          
-          let listaPropuestas = [];
-          resultados.forEach((documento) => {
-              listaPropuestas.push({ idDoc: documento.id, ...documento.data() });
-          });
-          return listaPropuestas;
-      } catch (error) {
-          console.error("Error al cargar las propuestas:", error);
-          return [];
-      }
+  async obtenerResultadosSeguimiento() {
+    const obtenerResultados = httpsCallable(this.functions, "obtenerResultadosSeguimiento");
+    const respuesta = await obtenerResultados();
+    return respuesta.data;
+  }
+
+  async cerrarSesion() {
+    await signOut(this.auth);
   }
 
   suscribirseAPropuestasActivas(callback, callbackError) {
-    const propuestasRef = collection(this.db, "propuestas");
-
     return onSnapshot(
-      propuestasRef,
+      collection(this.db, "propuestas"),
       (snapshot) => {
         const propuestas = snapshot.docs.map((documento) => ({
           idDoc: documento.id,
@@ -59,19 +49,9 @@ export class BaseDeDatosJAC {
     );
   }
 
-  async registrarVotoEnBD(idDocVecino, idDocPropuesta) {
-    try {
-      const vecinoRef = doc(this.db, "usuarios", idDocVecino);
-      const propuestaRef = doc(this.db, "propuestas", idDocPropuesta);
-
-      await updateDoc(vecinoRef, { haVotado: true });
-      await updateDoc(propuestaRef, { conteoVotos: increment(1) });
-
-      console.log("Transacción exitosa en la nube.");
-      return true;
-    } catch (error) {
-      console.error("Error crítico al registrar el voto:", error);
-      return false;
-    }
+  async registrarVotoEnBD(idDocPropuesta) {
+    const registrarVoto = httpsCallable(this.functions, "registrarVoto");
+    const respuesta = await registrarVoto({ idPropuesta: idDocPropuesta });
+    return respuesta.data.registrado === true;
   }
 }

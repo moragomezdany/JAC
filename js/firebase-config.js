@@ -1,6 +1,12 @@
 // 1. Importar las funciones de inicialización desde los servidores de Google (CDN)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+import { getFunctions } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-functions.js";
+import {
+  initializeAppCheck,
+  ReCaptchaEnterpriseProvider
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app-check.js";
 
 // 2. CONFIGURACIÓN DE TU PROYECTO
 // 👉 REEMPLAZA todo este bloque 'firebaseConfig' por el que te da Firebase
@@ -17,7 +23,18 @@ const firebaseConfig = {
 // 3. Inicializar Firebase con tu configuración
 const app = initializeApp(firebaseConfig);
 
-// 4. Inicializar Firestore y EXPORTARLO para que BaseDeDatosJAC.js lo pueda usar
-export const dbFirestore = getFirestore(app);
+const appCheckSiteKey = "6LfKVvItAAAAAI5jqRXcht54KwR2At4hAeovvapX";
+const esDesarrolloLocal = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
-console.log("🔥 Firebase inicializado y exportado correctamente");
+if (esDesarrolloLocal) {
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+
+export const appCheckFirebase = initializeAppCheck(app, {
+  provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+  isTokenAutoRefreshEnabled: true
+});
+
+export const dbFirestore = getFirestore(app);
+export const authFirebase = getAuth(app);
+export const functionsFirebase = getFunctions(app, "us-central1");

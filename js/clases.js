@@ -3,26 +3,9 @@
 // ==========================================
 
 export class Usuario {
-  // Las propiedades privadas se declaran con '#'
-  // Esto impide que sean modificadas desde fuera de la clase (Encapsulamiento)
-  #cedula;
-  #contrasena;
-
-  constructor(nombre, cedula, contrasena) {
+  constructor(nombre) {
     this.nombre = nombre;
-    this.#cedula = cedula;
-    this.#contrasena = contrasena;
   }
-
-  // Getters para permitir la lectura segura de datos privados
-  getCedula() {
-    return this.#cedula;
-  }
-
-  // Método para verificar identidad sin exponer la contraseña real
-  validarCredenciales(cedulaIngresada, contrasenaIngresada) {
-    return this.#cedula === cedulaIngresada && this.#contrasena === contrasenaIngresada;
-}
 }
 
 // ==========================================
@@ -33,10 +16,9 @@ export class Vecino extends Usuario {
   #idDocumento; // ID único generado por Firebase
   #haVotado;    // Estado de votación traído de la BD
 
-  constructor(idDocumento, nombre, cedula, contrasena, direccion, haVotado = false) {
-    super(nombre, cedula, contrasena); // Inicializa las propiedades de la clase padre (Usuario)
+  constructor(idDocumento, nombre, haVotado = false) {
+    super(nombre);
     this.#idDocumento = idDocumento;
-    this.direccion = direccion;
     this.#haVotado = haVotado;
   }
 
@@ -55,7 +37,7 @@ export class Vecino extends Usuario {
     }
     
     // Inyección de dependencias: usamos el gestorBD para hablar con Firestore
-    const exito = await gestorBD.registrarVotoEnBD(this.#idDocumento, idPropuesta);
+    const exito = await gestorBD.registrarVotoEnBD(idPropuesta);
     
     if (exito) {
       this.#haVotado = true; // Actualizamos el estado del objeto en memoria
